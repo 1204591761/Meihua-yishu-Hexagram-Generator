@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App 主题：无标题栏，黑色背景 -->
+    <style name="Theme.MeiHua" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">#0f0f0f</item>
+        <item name="android:statusBarColor">#0f0f0f</item>
+        <item name="android:navigationBarColor">#0f0f0f</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

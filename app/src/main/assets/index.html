@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>梅花易数 · AI解卦 V6</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#D4AF37',
+                        secondary: '#1A1A1A',
+                        accent: '#C0392B',
+                        light: '#F5F5DC',
+                        dark: '#0A0A0A',
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif SC"', 'SimSun', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap');
+
+        /* Android 状态栏安全区 */
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            background-color: #0f0f0f;
+            background-image:
+                radial-gradient(ellipse at 20% 50%, rgba(212,175,55,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(192,57,43,0.04) 0%, transparent 60%);
+            color: #F5F5DC;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            font-size: 14px;
+        }
+        input, textarea { -webkit-user-select: auto; user-select: auto; }
+
+        /* 太极纹背景 */
+        .bg-taiji {
+            background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23D4AF37' fill-opacity='0.04'%3E%3Cpath d='M40 0C17.9 0 0 17.9 0 40s17.9 40 40 40 40-17.9 40-40S62.1 0 40 0zm0 70C23.4 70 10 56.6 10 40S23.4 10 40 10s30 13.4 30 30-13.4 30-30 30z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        /* 输入框样式 */
+        .num-input {
+            background: rgba(26,26,26,0.9);
+            border: 1px solid rgba(212,175,55,0.3);
+            color: #F5F5DC;
+            font-size: 1.5rem;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            letter-spacing: 0.25em;
+            transition: all 0.3s;
+            border-radius: 10px;
+            padding: 14px 8px;
+            width: 100%;
+        }
+        .num-input:focus {
+            outline: none;
+            border-color: #D4AF37;
+            box-shadow: 0 0 0 2px rgba(212,175,55,0.2), 0 0 20px rgba(212,175,55,0.1);
+        }
+        .num-input::placeholder { color: rgba(245,245,220,0.2); }
+
+        /* 爻线样式 */
+        .yao-line { display: flex; align-items: center; justify-content: center; height: 24px; margin: 5px 0; position: relative; }
+        .yao-yang { width: 100px; height: 7px; background: linear-gradient(90deg, #D4AF37, #f0cc55, #D4AF37); border-radius: 4px; box-shadow: 0 0 8px rgba(212,175,55,0.5); }
+        .yao-yin-left { width: 44px; height: 7px; background: linear-gradient(90deg, #D4AF37, #f0cc55); border-radius: 4px; box-shadow: 0 0 8px rgba(212,175,55,0.5); }
+        .yao-yin-right { width: 44px; height: 7px; background: linear-gradient(90deg, #f0cc55, #D4AF37); border-radius: 4px; margin-left: 12px; box-shadow: 0 0 8px rgba(212,175,55,0.5); }
+        .yao-moving-yang { width: 100px; height: 7px; background: linear-gradient(90deg, #C0392B, #ff6b6b, #C0392B); border-radius: 4px; box-shadow: 0 0 12px rgba(192,57,43,0.8); animation: pulse-red 1.5s ease-in-out infinite; }
+        .yao-moving-yin-left { width: 44px; height: 7px; background: linear-gradient(90deg, #C0392B, #ff6b6b); border-radius: 4px; box-shadow: 0 0 12px rgba(192,57,43,0.8); animation: pulse-red 1.5s ease-in-out infinite; }
+        .yao-moving-yin-right { width: 44px; height: 7px; background: linear-gradient(90deg, #ff6b6b, #C0392B); border-radius: 4px; margin-left: 12px; box-shadow: 0 0 12px rgba(192,57,43,0.8); animation: pulse-red 1.5s ease-in-out infinite; }
+        @keyframes pulse-red { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .gua-label { font-family: 'Noto Serif SC', serif; font-size: 12px; color: rgba(212,175,55,0.7); writing-mode: horizontal-tb; }
+
+        /* AI解读流式输出 */
+        #aiOutput { font-family: 'Noto Serif SC', 'SimSun', serif; line-height: 1.9; white-space: pre-wrap; }
+        #aiOutput h3 { color: #D4AF37; font-size: 0.95em; font-weight: 600; margin: 0.8em 0 0.4em; border-bottom: 1px solid rgba(212,175,55,0.3); padding-bottom: 3px; }
+        #aiOutput p { margin: 0.5em 0; }
+        #aiOutput strong { color: #f0cc55; }
+        #aiOutput em { color: #C0392B; font-style: normal; }
+
+        .cursor { display: inline-block; width: 2px; height: 1em; background: #D4AF37; margin-left: 2px; vertical-align: middle; animation: blink 0.8s step-end infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+        .divider-chinese { display: flex; align-items: center; gap: 10px; color: rgba(212,175,55,0.4); font-size: 14px; margin: 1.2rem 0; }
+        .divider-chinese::before, .divider-chinese::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(212,175,55,0.3), transparent); }
+
+        .card { background: rgba(15,15,15,0.8); border: 1px solid rgba(212,175,55,0.15); border-radius: 12px; }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #c9a227, #D4AF37, #c9a227);
+            color: #0A0A0A;
+            font-weight: 700;
+            padding: 14px 32px;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            font-family: 'Noto Serif SC', serif;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(212,175,55,0.3);
+            width: 100%;
+        }
+        .btn-primary:active { opacity: 0.8; transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 五行颜色 */
+        .wx-jin { color: #D4AF37; }
+        .wx-mu { color: #4CAF50; }
+        .wx-shui { color: #2196F3; }
+        .wx-huo { color: #F44336; }
+        .wx-tu { color: #8D6E63; }
+
+        /* 加载动画 */
+        .loading-dots span { display: inline-block; width: 8px; height: 8px; background: #D4AF37; border-radius: 50%; margin: 0 3px; animation: bounce 1.4s ease-in-out infinite; }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); opacity: 0.3; } 40% { transform: scale(1); opacity: 1; } }
+
+        /* 历史记录 */
+        .history-item { border: 1px solid rgba(212,175,55,0.1); border-radius: 8px; padding: 10px; background: rgba(26,26,26,0.5); }
+
+        /* ===== 手机优先布局 ===== */
+        .page-container {
+            max-width: 100%;
+            padding: 0 12px 24px;
+        }
+
+        /* 标题精简 */
+        .app-header {
+            text-align: center;
+            padding: 16px 0 12px;
+        }
+        .app-header h1 {
+            font-size: 1.6rem;
+            letter-spacing: 0.12em;
+            text-shadow: 0 0 20px rgba(212,175,55,0.4);
+        }
+        .app-header .subtitle {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+            letter-spacing: 0.15em;
+        }
+
+        /* 卡片内间距 */
+        .card { padding: 14px; margin-bottom: 12px; }
+
+        /* 卦象 Tab 切换 */
+        .gua-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 12px;
+            background: rgba(26,26,26,0.6);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(212,175,55,0.15);
+        }
+        .gua-tab {
+            flex: 1;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 13px;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Noto Serif SC', serif;
+            border: none;
+            background: transparent;
+        }
+        .gua-tab.active {
+            color: #D4AF37;
+            background: rgba(212,175,55,0.12);
+            font-weight: 600;
+        }
+        .gua-tab:not(:last-child) {
+            border-right: 1px solid rgba(212,175,55,0.1);
+        }
+        .gua-panel { display: none; }
+        .gua-panel.active { display: flex; flex-direction: column; align-items: center; }
+
+        /* 信息表 - 2列紧凑 */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding-top: 12px;
+            margin-top: 12px;
+            border-top: 1px solid rgba(212,175,55,0.15);
+        }
+        .info-grid .info-item { text-align: center; }
+
+        /* 操作按钮 - 紧凑网格 */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .action-grid .action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 10px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid;
+            text-align: center;
+        }
+        .action-btn:active { transform: scale(0.97); }
+        .action-btn.full-width { grid-column: 1 / -1; }
+
+        /* 底部AI操作按钮 */
+        .ai-action-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(212,175,55,0.1);
+        }
+        .ai-action-bar .action-btn { padding: 9px 4px; font-size: 11px; }
+
+        /* API Key 区域 */
+        .api-section {
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(26,26,26,0.8);
+            border: 1px solid rgba(212,175,55,0.2);
+        }
+        .api-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .api-inputs .api-row {
+            display: flex;
+            gap: 8px;
+        }
+        .api-inputs input {
+            flex: 1;
+            padding: 9px 10px;
+            border-radius: 8px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            color: #F5F5DC;
+            font-size: 13px;
+        }
+        .api-inputs input:focus {
+            outline: none;
+            border-color: #D4AF37;
+        }
+        .api-inputs .save-btn {
+            padding: 9px 16px;
+            background: #D4AF37;
+            color: #0a0a0a;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        /* 通知 */
+        #toast {
+            left: 50% !important;
+            right: auto !important;
+            transform: translateX(-50%) !important;
+            bottom: 24px !important;
+            white-space: nowrap;
+            max-width: 80vw;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        /* 说明区域折叠 */
+        .info-section-toggle {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .info-section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .info-section-content.open {
+            max-height: 500px;
+        }
+
+        /* 触屏优化 */
+        @media (hover: none) {
+            .btn-primary:hover { transform: none; box-shadow: 0 4px 20px rgba(212,175,55,0.3); }
+            .action-btn:hover { transform: none; }
+        }
+
+        /* 大屏适配 */
+        @media (min-width: 640px) {
+            .page-container { max-width: 480px; margin: 0 auto; padding: 0 16px 32px; }
+            .app-header h1 { font-size: 2rem; }
+            .card { padding: 18px; margin-bottom: 16px; }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-taiji">
+<div class="page-container">
+
+    <!-- 标题 -->
+    <header class="app-header">
+        <div class="flex items-center justify-center gap-3 mb-1">
+            <div class="text-primary opacity-40 text-2xl">☯</div>
+            <h1 class="font-serif font-bold text-primary">梅花易数</h1>
+            <div class="text-primary opacity-40 text-2xl">☯</div>
+        </div>
+        <p class="subtitle">AI · 深度解卦 · 梅花易数正宗起卦法</p>
+    </header>
+
+    <!-- 主卡片 -->
+    <div class="card">
+
+        <!-- 问题输入 -->
+        <div class="mb-4">
+            <label class="block text-primary text-sm font-serif mb-2 tracking-wider">
+                <i class="fa fa-question-circle mr-1 opacity-60"></i>所占之事
+            </label>
+            <textarea id="question" rows="2"
+                placeholder="请写明所占之事，如：问近期工作运势如何？"
+                class="w-full px-3 py-2.5 rounded-lg text-light placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                style="background:rgba(26,26,26,0.9); border:1px solid rgba(212,175,55,0.25); font-family: 'Noto Serif SC', serif; font-size:14px; line-height:1.7;"></textarea>
+        </div>
+
+        <!-- 九位数输入 -->
+        <div class="mb-4">
+            <label class="block text-primary text-sm font-serif mb-1.5 tracking-wider">
+                <i class="fa fa-sort-numeric-asc mr-1 opacity-60"></i>起卦九位数
+            </label>
+            <p class="text-xs text-gray-500 mb-2.5">
+                输入九位数，自动拆为三组：前3位÷8定上卦，中3位÷8定下卦，后3位÷6定动爻
+            </p>
+            <div class="relative">
+                <input type="text" id="numNine" class="num-input" maxlength="9" placeholder="输入九位数" inputmode="numeric" pattern="\d*" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <!-- 实时拆分预览 -->
+                <div id="splitPreview" class="hidden mt-2.5 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div class="py-2 px-2 rounded" style="background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.2)">
+                        <div class="text-gray-500 mb-0.5">上数</div>
+                        <div class="text-primary font-bold text-sm font-mono" id="preview1">—</div>
+                        <div class="text-gray-600">÷8→上卦</div>
+                    </div>
+                    <div class="py-2 px-2 rounded" style="background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.2)">
+                        <div class="text-gray-500 mb-0.5">中数</div>
+                        <div class="text-primary font-bold text-sm font-mono" id="preview2">—</div>
+                        <div class="text-gray-600">÷8→下卦</div>
+                    </div>
+                    <div class="py-2 px-2 rounded" style="background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.2)">
+                        <div class="text-gray-500 mb-0.5">下数</div>
+                        <div class="text-primary font-bold text-sm font-mono" id="preview3">—</div>
+                        <div class="text-gray-600">÷6→动爻</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 计算按钮 -->
+        <button id="calcBtn" class="btn-primary">
+            ☯ 立卦起算
+        </button>
+    </div>
+
+    <!-- 结果区域 -->
+    <div id="resultArea" class="hidden">
+
+        <!-- 起卦过程 -->
+        <div class="card">
+            <h2 class="text-primary font-serif text-sm mb-3 tracking-wider">
+                <i class="fa fa-calculator mr-1 opacity-60"></i>起卦过程
+            </h2>
+            <div id="processDisplay" class="space-y-1.5 text-xs text-gray-300 font-mono leading-relaxed"></div>
+        </div>
+
+        <!-- 卦象主体 -->
+        <div class="card">
+            <!-- Tab 切换 -->
+            <div class="gua-tabs">
+                <div class="gua-tab active" onclick="switchGuaTab(0)">本卦</div>
+                <div class="gua-tab" onclick="switchGuaTab(1)">互卦</div>
+                <div class="gua-tab" onclick="switchGuaTab(2)">变卦</div>
+            </div>
+
+            <!-- 本卦面板 -->
+            <div class="gua-panel active" id="guaPanel0">
+                <div id="hexagramDraw" class="hex-svg-wrap mb-2"></div>
+                <div class="text-center">
+                    <div class="text-xl font-serif text-primary font-bold" id="hexName">—</div>
+                    <div class="text-xs text-gray-400 mt-0.5" id="hexNature">—</div>
+                </div>
+            </div>
+
+            <!-- 互卦面板 -->
+            <div class="gua-panel" id="guaPanel1">
+                <div id="hexagramHuDraw" class="hex-svg-wrap mb-2"></div>
+                <div class="text-center">
+                    <div class="text-xl font-serif font-bold mb-0.5" id="hexHuName" style="color:#8E44AD;">—</div>
+                    <div class="text-xs text-gray-400" id="hexHuNature">—</div>
+                </div>
+            </div>
+
+            <!-- 变卦面板 -->
+            <div class="gua-panel" id="guaPanel2">
+                <div id="hexagramChangeDraw" class="hex-svg-wrap mb-2"></div>
+                <div class="text-center">
+                    <div class="text-xl font-serif text-primary font-bold mb-0.5" id="hexChangeName">—</div>
+                    <div class="text-xs text-gray-400" id="hexChangeNature">—</div>
+                </div>
+            </div>
+
+            <!-- 信息表 -->
+            <div class="info-grid">
+                <div class="info-item"><div class="text-xs text-gray-500">上卦</div><div class="text-primary font-serif font-bold text-sm" id="infoUpper">—</div></div>
+                <div class="info-item"><div class="text-xs text-gray-500">下卦</div><div class="text-primary font-serif font-bold text-sm" id="infoLower">—</div></div>
+                <div class="info-item"><div class="text-xs text-gray-500">动爻</div><div class="text-accent font-serif font-bold text-sm" id="infoMoving">—</div></div>
+                <div class="info-item"><div class="text-xs text-gray-500">互卦</div><div class="font-serif font-bold text-sm" id="infoHu" style="color:#8E44AD;">—</div></div>
+                <div class="info-item" style="grid-column:1/-1"><div class="text-xs text-gray-500">变卦</div><div class="text-primary font-serif font-bold text-sm" id="infoChange">—</div></div>
+            </div>
+
+            <!-- 卦辞 -->
+            <div class="mt-3 p-3 rounded-lg" style="background:rgba(212,175,55,0.05); border:1px solid rgba(212,175,55,0.1)">
+                <div class="text-xs text-gray-500 mb-1">卦辞</div>
+                <div id="hexText" class="text-gray-300 font-serif text-xs leading-relaxed">—</div>
+            </div>
+
+            <!-- 操作按钮网格 -->
+            <div class="action-grid">
+                <button onclick="copyAll()" class="action-btn" style="background:rgba(212,175,55,0.1); border-color:rgba(212,175,55,0.3); color:#D4AF37;">
+                    <i class="fa fa-copy"></i> 复制提问语句
+                </button>
+                <button onclick="copyVerify()" class="action-btn" style="background:rgba(192,57,43,0.08); border-color:rgba(192,57,43,0.3); color:#E74C3C;">
+                    <i class="fa fa-check-circle"></i> 复制验证文案
+                </button>
+                <button onclick="copyResult()" class="action-btn" style="background:rgba(142,68,173,0.1); border-color:rgba(142,68,173,0.3); color:#8E44AD;">
+                    <i class="fa fa-clipboard"></i> 复制卦象结果
+                </button>
+                <button onclick="clearAll()" class="action-btn" style="background:rgba(255,255,255,0.03); border-color:rgba(255,255,255,0.1); color:#888;">
+                    <i class="fa fa-refresh"></i> 重新起卦
+                </button>
+                <button onclick="openTemplateEditor()" class="action-btn full-width" style="background:rgba(255,255,255,0.02); border-color:rgba(255,255,255,0.08); color:#666;">
+                    <i class="fa fa-pencil"></i> 编辑提问模板
+                </button>
+                <button onclick="openVerifyEditor()" class="action-btn full-width" style="background:rgba(255,255,255,0.02); border-color:rgba(255,255,255,0.08); color:#666;">
+                    <i class="fa fa-pencil"></i> 编辑验证模板
+                </button>
+            </div>
+        </div>
+
+        <!-- AI解读 -->
+        <div class="card">
+            <h2 class="text-primary font-serif text-sm mb-3 tracking-wider">
+                🔮 AI深度解卦
+            </h2>
+            <!-- API Key 配置 -->
+            <div id="apiKeyArea" class="api-section">
+                <div class="text-xs text-gray-400 mb-2"><i class="fa fa-key mr-1"></i>AI API Key（支持 DeepSeek / OpenAI）</div>
+                <div class="api-inputs">
+                    <input type="password" id="apiKeyInput" placeholder="sk-...">
+                    <div class="api-row">
+                        <input type="text" id="apiBaseInput" placeholder="API地址（留空用DeepSeek）">
+                        <button onclick="saveApiKey()" class="save-btn">保存</button>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-600 mt-1.5">Key仅存本地，不会上传</div>
+            </div>
+            <!-- 加载中 -->
+            <div id="aiLoading" class="hidden text-center py-6">
+                <div class="loading-dots mb-3"><span></span><span></span><span></span></div>
+                <div class="text-gray-500 text-xs font-serif">正在请教易数神明，深度解析卦象……</div>
+            </div>
+            <!-- 输出 -->
+            <div id="aiOutput" class="text-gray-300 leading-loose min-h-[80px] text-xs"></div>
+            <!-- 操作按钮 -->
+            <div id="actionBtns" class="ai-action-bar" style="display:none;">
+                <button onclick="reinterpret()" class="action-btn" style="background:transparent; border:1px solid rgba(212,175,55,0.4); color:#D4AF37;"><i class="fa fa-refresh"></i> 重新解卦</button>
+                <button onclick="copyAll()" class="action-btn" style="background:transparent; border:1px solid rgba(142,68,173,0.4); color:#8E44AD;"><i class="fa fa-copy"></i> 复制提问</button>
+                <button onclick="copyVerify()" class="action-btn" style="background:transparent; border:1px solid rgba(192,57,43,0.4); color:#E74C3C;"><i class="fa fa-check-circle"></i> 验证文案</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 历史记录 -->
+    <div class="card">
+        <div class="info-section-toggle" onclick="toggleHistory()">
+            <h3 class="text-primary font-serif text-sm tracking-wider"><i class="fa fa-history mr-1 opacity-60"></i>占卜记录</h3>
+            <span class="text-xs text-gray-500" id="toggleHistBtn"><i class="fa fa-chevron-down"></i></span>
+        </div>
+        <div id="historyList" class="hidden mt-3 space-y-2 max-h-52 overflow-y-auto"></div>
+    </div>
+
+    <!-- 说明 -->
+    <div class="card">
+        <div class="info-section-toggle" onclick="toggleInfoSection()">
+            <h3 class="text-primary font-serif text-sm tracking-wider"><i class="fa fa-book mr-1 opacity-60"></i>起卦法说明</h3>
+            <span class="text-xs text-gray-500" id="toggleInfoBtn"><i class="fa fa-chevron-down"></i></span>
+        </div>
+        <div id="infoSectionContent" class="info-section-content">
+            <div class="text-xs text-gray-400 mt-3 leading-relaxed">
+                <h4 class="text-primary mb-1.5 font-medium">起卦规则</h4>
+                <ol class="space-y-0.5 list-decimal list-inside mb-3">
+                    <li>心中默想一件事，随意取一个九位数</li>
+                    <li>前三位÷8余数定上卦（余0取8）</li>
+                    <li>中三位÷8余数定下卦（余0取8）</li>
+                    <li>后三位÷6余数定动爻（余0取6）</li>
+                </ol>
+                <h4 class="text-primary mb-1.5 font-medium">八卦对应</h4>
+                <div class="grid grid-cols-2 gap-0.5">
+                    <span>1·乾☰天(金)</span><span>2·兑☱泽(金)</span>
+                    <span>3·离☲火(火)</span><span>4·震☳雷(木)</span>
+                    <span>5·巽☴风(木)</span><span>6·坎☵水(水)</span>
+                    <span>7·艮☶山(土)</span><span>8·坤☷地(土)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center text-gray-600 text-xs pb-6 pt-2">梅花易数 · 仅供参考 · AI解读基于传统易学</footer>
+</div>
+
+<!-- 模板编辑弹窗 -->
+<div id="tplEditorOverlay" class="hidden fixed inset-0 z-50 flex items-center justify-center px-3" style="background:rgba(0,0,0,0.75); backdrop-filter:blur(4px);">
+    <div class="w-full max-w-lg rounded-xl p-5" style="background:#151515; border:1px solid rgba(212,175,55,0.3); max-height:90vh; overflow-y:auto;">
+        <h3 class="text-primary font-serif text-sm mb-2 tracking-wider"><i class="fa fa-pencil mr-1 opacity-60"></i>编辑复制模板</h3>
+        <p class="text-xs text-gray-500 mb-2 leading-relaxed">变量：<code class="text-primary bg-black px-1 rounded">{上卦}</code> <code class="text-primary bg-black px-1 rounded">{下卦}</code> <code class="text-primary bg-black px-1 rounded">{动爻}</code> <code class="text-primary bg-black px-1 rounded">{问题}</code></p>
+        <textarea id="tplTextarea" rows="5" class="w-full px-3 py-2.5 rounded-lg text-xs text-light focus:outline-none resize-none" style="background:rgba(26,26,26,0.9); border:1px solid rgba(212,175,55,0.25); font-family:'Noto Serif SC',serif; line-height:1.7;"></textarea>
+        <div class="flex gap-2 mt-3">
+            <button onclick="saveTemplate()" class="flex-1 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#c9a227,#D4AF37); color:#0a0a0a;">保存</button>
+            <button onclick="resetTemplate()" class="px-3 py-2 rounded-lg text-xs" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#888;">默认</button>
+            <button onclick="closeTemplateEditor()" class="px-3 py-2 rounded-lg text-xs" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#888;">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- 验证模板编辑弹窗 -->
+<div id="verifyEditorOverlay" class="hidden fixed inset-0 z-50 flex items-center justify-center px-3" style="background:rgba(0,0,0,0.75); backdrop-filter:blur(4px);">
+    <div class="w-full max-w-lg rounded-xl p-5" style="background:#151515; border:1px solid rgba(192,57,43,0.35); max-height:90vh; overflow-y:auto;">
+        <h3 class="font-serif text-sm mb-2 tracking-wider" style="color:#E74C3C;"><i class="fa fa-check-circle mr-1 opacity-60"></i>编辑验证文案模板</h3>
+        <textarea id="verifyTextarea" rows="4" class="w-full px-3 py-2.5 rounded-lg text-xs text-light focus:outline-none resize-none" style="background:rgba(26,26,26,0.9); border:1px solid rgba(192,57,43,0.25); font-family:'Noto Serif SC',serif; line-height:1.7;"></textarea>
+        <div class="flex gap-2 mt-3">
+            <button onclick="saveVerifyTemplate()" class="flex-1 py-2 rounded-lg text-sm font-bold" style="background:linear-gradient(135deg,#c0392b,#E74C3C); color:#fff;">保存</button>
+            <button onclick="resetVerifyTemplate()" class="px-3 py-2 rounded-lg text-xs" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#888;">默认</button>
+            <button onclick="closeVerifyEditor()" class="px-3 py-2 rounded-lg text-xs" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#888;">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- 通知 -->
+<div id="toast" class="fixed bottom-6 right-6 px-4 py-2.5 rounded-lg shadow-xl text-sm font-medium opacity-0 pointer-events-none transition-all duration-300 z-50"></div>
+
+<script>
+// =============================================
+//  数据：八卦、六十四卦
+// =============================================
+
+const TRIGRAMS = {
+    1: { name:"乾", symbol:"☰", nature:"天", wuxing:"金", yao:[1,1,1] },
+    2: { name:"兑", symbol:"☱", nature:"泽", wuxing:"金", yao:[1,1,0] },
+    3: { name:"离", symbol:"☲", nature:"火", wuxing:"火", yao:[1,0,1] },
+    4: { name:"震", symbol:"☳", nature:"雷", wuxing:"木", yao:[1,0,0] },
+    5: { name:"巽", symbol:"☴", nature:"风", wuxing:"木", yao:[0,1,1] },
+    6: { name:"坎", symbol:"☵", nature:"水", wuxing:"水", yao:[0,1,0] },
+    7: { name:"艮", symbol:"☶", nature:"山", wuxing:"土", yao:[0,0,1] },
+    8: { name:"坤", symbol:"☷", nature:"地", wuxing:"土", yao:[0,0,0] }
+};
+
+const HEXAGRAMS = {
+    "11":{ name:"乾", nature:"乾为天", wuxing:"金", judgment:"元亨利贞。", image:"天行健，君子以自强不息。", text:"纯阳之卦，刚健中正。主大吉大利，宜积极进取，自强不息。" },
+    "12":{ name:"夬", nature:"泽天夬", wuxing:"金", judgment:"扬于王庭，孚号，有厉，告自邑。不利即戎，利有攸往。", image:"泽上于天，夬；君子以施禄及下，居德则忌。", text:"决而和，刚健果断。事宜决断，但不可意气用事，当以德服人。" },
+    "13":{ name:"大有", nature:"火天大有", wuxing:"金", judgment:"元亨。", image:"火在天上，大有；君子以遏恶扬善，顺天休命。", text:"盛大富有，顺天应人。主亨通，诸事顺遂，宜发挥才能。" },
+    "14":{ name:"大壮", nature:"雷天大壮", wuxing:"金", judgment:"利贞。", image:"雷在天上，大壮；君子以非礼弗履。", text:"阳气壮盛，宜正不宜邪。事业正处上升期，但须守正，切忌蛮干。" },
+    "15":{ name:"小畜", nature:"风天小畜", wuxing:"金", judgment:"亨，密云不雨，自我西郊。", image:"风行天上，小畜；君子以懿文德。", text:"小有积蓄，密云不雨。时机未到，宜积累蓄力，不宜贸然行动。" },
+    "16":{ name:"需", nature:"水天需", wuxing:"金", judgment:"有孚，光亨，贞吉，利涉大川。", image:"云上于天，需；君子以饮食宴乐。", text:"以刚遇险，宜等待时机。须有耐心，守信待机，时机成熟则吉。" },
+    "17":{ name:"大畜", nature:"山天大畜", wuxing:"金", judgment:"利贞，不家食，吉，利涉大川。", image:"天在山中，大畜；君子以多识前言往行，以畜其德。", text:"大力积蓄，充实学识。宜积累知识才能，厚积薄发，时机未至勿急。" },
+    "18":{ name:"泰", nature:"地天泰", wuxing:"金", judgment:"小往大来，吉亨。", image:"天地交，泰；后以财成天地之道，辅相天地之宜，以左右民。", text:"天地交泰，万物亨通。诸事顺利，上下和谐，是开拓进取的好时机。" },
+    "21":{ name:"履", nature:"天泽履", wuxing:"金", judgment:"履虎尾，不咥人，亨。", image:"上天下泽，履；君子以辨上下，定民志。", text:"如履薄冰，谨慎前行。处境险中有机，只要谦恭谨慎，可逢凶化吉。" },
+    "22":{ name:"兑", nature:"兑为泽", wuxing:"金", judgment:"亨，利贞。", image:"丽泽，兑；君子以朋友讲习。", text:"喜悦和乐，刚中柔外。主口才出众，人际和顺，但须防口舌是非。" },
+    "23":{ name:"睽", nature:"火泽睽", wuxing:"金", judgment:"小事吉。", image:"上火下泽，睽；君子以同而异。", text:"背道而驰，意见相左。诸事多有分歧，宜小事不宜大事，须求同存异。" },
+    "24":{ name:"归妹", nature:"雷泽归妹", wuxing:"金", judgment:"征凶，无攸利。", image:"泽上有雷，归妹；君子以永终知弊。", text:"嫁娶之象，需审慎。婚姻感情须谨慎，轻率行事易有悔吝。" },
+    "25":{ name:"中孚", nature:"风泽中孚", wuxing:"金", judgment:"豚鱼吉，利涉大川，利贞。", image:"泽上有风，中孚；君子以议狱缓死。", text:"内心诚信，感化万物。以诚相待，可感化他人，利于合作与信任建立。" },
+    "26":{ name:"节", nature:"水泽节", wuxing:"金", judgment:"亨，苦节不可贞。", image:"泽上有水，节；君子以制数度，议德行。", text:"节制有度，适可而止。凡事有节，过犹不及，当知进退取舍。" },
+    "27":{ name:"损", nature:"山泽损", wuxing:"金", judgment:"有孚，元吉，无咎，可贞，利有攸往。", image:"山下有泽，损；君子以惩忿窒欲。", text:"有所减损，以小换大。眼前虽有损失，但有孚于诚，终可转化为吉。" },
+    "28":{ name:"临", nature:"地泽临", wuxing:"金", judgment:"元亨利贞，至于八月有凶。", image:"泽上有地，临；君子以教思无穷，容保民无疆。", text:"居上临下，时运亨通。当下形势有利，宜主动进取，但须防时过境迁。" },
+    "31":{ name:"同人", nature:"天火同人", wuxing:"火", judgment:"同人于野，亨，利涉大川，利君子贞。", image:"天与火，同人；君子以类族辨物。", text:"志同道合，携手共进。宜与他人合作，广结善缘，合则利，分则弱。" },
+    "32":{ name:"革", nature:"泽火革", wuxing:"金", judgment:"己日乃孚，元亨利贞，悔亡。", image:"泽中有火，革；君子以治历明时。", text:"除旧布新，变革创新。时机已成熟，须果断变革，顺势而为。" },
+    "33":{ name:"离", nature:"离为火", wuxing:"火", judgment:"利贞，亨，畜牝牛吉。", image:"明两作，离；大人以继明照于四方。", text:"光明附丽，华彩绚烂。主光明亨通，才华显露，但需守正，防华而不实。" },
+    "34":{ name:"丰", nature:"雷火丰", wuxing:"火", judgment:"亨，王假之，勿忧，宜日中。", image:"雷电皆至，丰；君子以折狱致刑。", text:"盛大丰满，光明动进。运势处于顶峰，须居安思危，防乐极生悲。" },
+    "35":{ name:"家人", nature:"风火家人", wuxing:"火", judgment:"利女贞。", image:"风自火出，家人；君子以言有物而行有恒。", text:"家庭和睦，各守其位。家庭或团队内务宜整顿，以身作则方能齐家。" },
+    "36":{ name:"既济", nature:"水火既济", wuxing:"火", judgment:"亨小，利贞，初吉终乱。", image:"水在火上，既济；君子以思患而豫防之。", text:"事已成就，守成为要。大事已成，须防患于未然，防止功成身退后的衰退。" },
+    "37":{ name:"贲", nature:"山火贲", wuxing:"火", judgment:"亨，小利有攸往。", image:"山下有火，贲；君子以明庶政，无敢折狱。", text:"文采斐然，内外兼修。注重仪表形象，文饰得当，但须防虚有其表。" },
+    "38":{ name:"明夷", nature:"地火明夷", wuxing:"火", judgment:"利艰贞。", image:"明入地中，明夷；君子以莅众，用晦而明。", text:"光明受损，韬光养晦。处境不利，宜隐忍待时，光明终将重现。" },
+    "41":{ name:"无妄", nature:"天雷无妄", wuxing:"木", judgment:"元亨利贞，其匪正有眚，不利有攸往。", image:"天下雷行，物与无妄；先王以茂对时育万物。", text:"顺天而为，不妄作为。凡事应顺应自然规律，不可强求，妄动则有灾。" },
+    "42":{ name:"随", nature:"泽雷随", wuxing:"木", judgment:"元亨利贞，无咎。", image:"泽中有雷，随；君子以向晦入宴息。", text:"随时顺势，跟随潮流。宜顺势而为，跟随有力之人，时机把握得当则吉。" },
+    "43":{ name:"噬嗑", nature:"火雷噬嗑", wuxing:"木", judgment:"亨，利用狱。", image:"雷电，噬嗑；先王以明罚敕法。", text:"咬合贯通，刚柔并济。宜果断处理阻碍，明辨是非，依法行事则亨。" },
+    "44":{ name:"震", nature:"震为雷", wuxing:"木", judgment:"亨，震来虩虩，笑言哑哑，震惊百里，不丧匕鬯。", image:"洊雷，震；君子以恐惧修省。", text:"震动惊醒，反省自新。遇到震动或变故，当警醒反思，居安思危。" },
+    "45":{ name:"益", nature:"风雷益", wuxing:"木", judgment:"利有攸往，利涉大川。", image:"风雷，益；君子以见善则迁，有过则改。", text:"增益利人，损上益下。宜行善积德，见贤思齐，必有所收获。" },
+    "46":{ name:"屯", nature:"水雷屯", wuxing:"木", judgment:"元亨利贞，勿用有攸往，利建侯。", image:"云雷，屯；君子以经纶。", text:"初生艰难，万象更新。事业起步艰辛，宜坚持，切勿轻言放弃。" },
+    "47":{ name:"颐", nature:"山雷颐", wuxing:"木", judgment:"贞吉，观颐，自求口实。", image:"山下有雷，颐；君子以慎言语，节饮食。", text:"颐养正气，慎言节行。宜注重养生调息，言语谨慎，修养自身。" },
+    "48":{ name:"复", nature:"地雷复", wuxing:"木", judgment:"亨，出入无疾，朋来无咎，反复其道，七日来复，利有攸往。", image:"雷在地中，复；先王以至日闭关，商旅不行，后不省方。", text:"阳气复苏，返本归源。事情出现转机，一阳来复，困境即将结束。" },
+    "51":{ name:"姤", nature:"天风姤", wuxing:"木", judgment:"女壮，勿用取女。", image:"天下有风，姤；后以施命诰四方。", text:"不期而遇，柔遇于刚。警惕意外邂逅带来的变化，不可轻率行事。" },
+    "52":{ name:"大过", nature:"泽风大过", wuxing:"木", judgment:"栋桡，利有攸往，亨。", image:"泽灭木，大过；君子以独立不惧，遁世无闷。", text:"大有过失，超乎寻常。当前局势超出常规，需非常之举，宜独立坚守。" },
+    "53":{ name:"鼎", nature:"火风鼎", wuxing:"木", judgment:"元吉，亨。", image:"木上有火，鼎；君子以正位凝命。", text:"鼎新革故，稳重权威。新旧交替，宜稳健推进，正位当权必得吉祥。" },
+    "54":{ name:"恒", nature:"雷风恒", wuxing:"木", judgment:"亨，无咎，利贞，利有攸往。", image:"雷风，恒；君子以立不易方。", text:"恒久坚持，持之以恒。坚守正道，不轻易改变方向，持恒则事业有成。" },
+    "55":{ name:"巽", nature:"巽为风", wuxing:"木", judgment:"小亨，利有攸往，利见大人。", image:"随风，巽；君子以申命行事。", text:"谦逊柔顺，随机应变。宜谦逊处事，见机行事，有贵人相助则吉。" },
+    "56":{ name:"井", nature:"水风井", wuxing:"木", judgment:"改邑不改井，无丧无得，往来井井，汔至亦未繘井，羸其瓶，凶。", image:"木上有水，井；君子以劳民劝相。", text:"滋养众人，取之不竭。做好本职，稳定持续，切勿半途而废。" },
+    "57":{ name:"蛊", nature:"山风蛊", wuxing:"木", judgment:"元亨，利涉大川，先甲三日，后甲三日。", image:"山下有风，蛊；君子以振民育德。", text:"整治蛊弊，拨乱反正。当前有积弊需整治，宜大力改革，振兴事业。" },
+    "58":{ name:"升", nature:"地风升", wuxing:"木", judgment:"元亨，用见大人，勿恤，南征吉。", image:"地中生木，升；君子以顺德，积小以高大。", text:"积小成大，步步高升。脚踏实地，循序渐进，前景一片光明。" },
+    "61":{ name:"讼", nature:"天水讼", wuxing:"水", judgment:"有孚，窒惕，中吉，终凶；利见大人，不利涉大川。", image:"天与水违行，讼；君子以作事谋始。", text:"争讼不息，凡事宜和。当前多纷争，宜寻求调解，不可意气用事。" },
+    "62":{ name:"困", nature:"泽水困", wuxing:"水", judgment:"亨，贞，大人吉，无咎，有言不信。", image:"泽无水，困；君子以致命遂志。", text:"处境困顿，志向不移。虽处逆境，但君子守志，终可突破困境。" },
+    "63":{ name:"未济", nature:"火水未济", wuxing:"水", judgment:"亨，小狐汔济，濡其尾，无攸利。", image:"火在水上，未济；君子以慎辨物居方。", text:"事未完成，前景未明。事情尚未完结，还需谨慎努力，不可大意。" },
+    "64":{ name:"解", nature:"雷水解", wuxing:"水", judgment:"利西南，无所往，其来复吉。有攸往，夙吉。", image:"雷雨作，解；君子以赦过宥罪。", text:"解除困难，雷雨过后。困境解脱，宜宽容大度，化解积怨，迎接新局。" },
+    "65":{ name:"涣", nature:"风水涣", wuxing:"水", judgment:"亨，王假有庙，利涉大川，利贞。", image:"风行水上，涣；先王以享于帝立庙。", text:"离散流散，聚而后散。当凝聚力量，防止离心，需要强有力的核心整合。" },
+    "66":{ name:"坎", nature:"坎为水", wuxing:"水", judgment:"有孚，维心亨，行有尚。", image:"水洊至，习坎；君子以常德行，习教事。", text:"重险在前，习以化险。面对重重险阻，须坚守诚信，习练应变之术。" },
+    "67":{ name:"蒙", nature:"山水蒙", wuxing:"水", judgment:"亨，匪我求童蒙，童蒙求我，初筮告，再三渎，渎则不告，利贞。", image:"山下出泉，蒙；君子以果行育德。", text:"启蒙教化，循循善诱。处于学习摸索阶段，宜虚心请教，不可刚愎自用。" },
+    "68":{ name:"师", nature:"地水师", wuxing:"水", judgment:"贞，丈人，吉，无咎。", image:"地中有水，师；君子以容民畜众。", text:"统率众人，号令严明。需要组织统领能力，以正义统众，得民心者得天下。" },
+    "71":{ name:"遯", nature:"天山遯", wuxing:"土", judgment:"亨，小利贞。", image:"天下有山，遯；君子以远小人，不恶而严。", text:"退避隐遁，以退为进。时机不利，宜暂退保身，等待时机，不可强行。" },
+    "72":{ name:"咸", nature:"泽山咸", wuxing:"土", judgment:"亨，利贞，取女吉。", image:"山上有泽，咸；君子以虚受人。", text:"感应相通，柔上刚下。男女相感，宜虚心容纳，以诚感人。" },
+    "73":{ name:"旅", nature:"火山旅", wuxing:"土", judgment:"小亨，旅贞吉。", image:"山上有火，旅；君子以明慎用刑，而不留狱。", text:"漂泊旅行，寓居他处。处于流动变化之中，宜谨慎处事，与人为善。" },
+    "74":{ name:"小过", nature:"雷山小过", wuxing:"土", judgment:"亨，利贞，可小事，不可大事，飞鸟遗之音，不宜上，宜下，大吉。", image:"山上有雷，小过；君子以行过乎恭，丧过乎哀，用过乎俭。", text:"稍有过分，宜小不宜大。行事宜谨慎，小事可为，大事当止，处下为宜。" },
+    "75":{ name:"渐", nature:"风山渐", wuxing:"土", judgment:"女归吉，利贞。", image:"山上有木，渐；君子以居贤德善俗。", text:"循序渐进，稳步前行。凡事不可急于求成，稳扎稳打，水到渠成。" },
+    "76":{ name:"蹇", nature:"水山蹇", wuxing:"土", judgment:"利西南，不利东北；利见大人，贞吉。", image:"山上有水，蹇；君子以反身修德。", text:"艰难困苦，步履维艰。面临重重障碍，宜向外求助，修德待机，利西南。" },
+    "77":{ name:"艮", nature:"艮为山", wuxing:"土", judgment:"艮其背，不获其身，行其庭，不见其人，无咎。", image:"兼山，艮；君子以思不出其位。", text:"静止稳重，知止则吉。安守本分，不越位行事，静待时机。" },
+    "78":{ name:"谦", nature:"地山谦", wuxing:"土", judgment:"亨，君子有终。", image:"地中有山，谦；君子以裒多益寡，称物平施。", text:"谦逊处下，德行高洁。谦谦君子，终有大吉，谦虚不自满是成功之道。" },
+    "81":{ name:"否", nature:"天地否", wuxing:"土", judgment:"否之匪人，不利君子贞，大往小来。", image:"天地不交，否；君子以俭德辟难，不可荣以禄。", text:"天地否塞，上下不通。交通阻滞，宜守节俭，避难待时，不可冒进。" },
+    "82":{ name:"萃", nature:"泽地萃", wuxing:"土", judgment:"亨，王假有庙，利见大人，亨，利贞。用大牲吉，利有攸往。", image:"泽上于地，萃；君子以除戎器，戒不虞。", text:"汇聚集结，众志成城。人心向聚，宜把握时机，聚合资源，凝聚力量。" },
+    "83":{ name:"晋", nature:"火地晋", wuxing:"土", judgment:"康侯用锡马蕃庶，昼日三接。", image:"明出地上，晋；君子以自昭明德。", text:"光明出地，晋升进取。形势大好，宜积极展示才干，晋升机会就在眼前。" },
+    "84":{ name:"豫", nature:"雷地豫", wuxing:"土", judgment:"利建侯行师。", image:"雷出地奋，豫；先王以作乐崇德，殷荐之上帝，以配祖考。", text:"欢欣愉悦，和顺通达。当前运势顺畅，利于建立功业，但防过于放纵。" },
+    "85":{ name:"观", nature:"风地观", wuxing:"土", judgment:"盥而不荐，有孚颙若。", image:"风行地上，观；先王以省方，观民设教。", text:"观察审视，以正服人。当前宜观察形势，深思熟虑，以德感化他人。" },
+    "86":{ name:"比", nature:"水地比", wuxing:"土", judgment:"吉，原筮，元永贞，无咎，不宁方来，后夫凶。", image:"地上有水，比；先王以建万国，亲诸侯。", text:"亲密相比，同心协力。宜广结善缘，择善而从，团结则吉，孤立则凶。" },
+    "87":{ name:"剥", nature:"山地剥", wuxing:"土", judgment:"不利有攸往。", image:"山附于地，剥；上以厚下安宅。", text:"阴长阳消，剥落削去。局势不利，宜守不宜攻，厚德载物，坚守根本。" },
+    "88":{ name:"坤", nature:"坤为地", wuxing:"土", judgment:"元亨，利牝马之贞，君子有攸往，先迷后得主，利，西南得朋，东北丧朋，安贞吉。", image:"地势坤，君子以厚德载物。", text:"纯阴之卦，柔顺包容。厚德载物，宜顺势而为，以柔克刚，稳健持重。" }
+};
+
+const WUXING_RELATIONS = {
+    "金金":"比和", "金木":"金克木", "金水":"金生水", "金火":"火克金", "金土":"土生金",
+    "木木":"比和", "木火":"木生火", "木水":"水生木", "木土":"木克土", "木金":"金克木",
+    "水水":"比和", "水木":"水生木", "水金":"金生水", "水火":"水克火", "水土":"土克水",
+    "火火":"比和", "火土":"火生土", "火木":"木生火", "火水":"水克火", "火金":"火克金",
+    "土土":"比和", "土金":"土生金", "土火":"火生土", "土木":"木克土", "土水":"土克水"
+};
+
+// =============================================
+//  核心起卦逻辑
+// =============================================
+
+function getGuaLines(n) {
+    const t = TRIGRAMS[n];
+    return t ? [...t.yao] : [0,0,0];
+}
+
+function calcHexagram(n1, n2, n3) {
+    const r1 = n1 % 8 === 0 ? 8 : n1 % 8;
+    const r2 = n2 % 8 === 0 ? 8 : n2 % 8;
+    const r3 = n3 % 6 === 0 ? 6 : n3 % 6;
+    const upperTrigram = TRIGRAMS[r1];
+    const lowerTrigram = TRIGRAMS[r2];
+    const hexKey = `${r2}${r1}`;
+    const hexData = HEXAGRAMS[hexKey] || { name:"未知", nature:"—", wuxing:"—", judgment:"", image:"", text:"暂无卦辞数据" };
+    const lowerYao = getGuaLines(r2);
+    const upperYao = getGuaLines(r1);
+    const allYao = [...lowerYao, ...upperYao];
+    const movingIdx = r3 - 1;
+    const changedYao = [...allYao];
+    changedYao[movingIdx] = 1 - changedYao[movingIdx];
+    const changedLower = yaoToTrigram(changedYao.slice(0,3));
+    const changedUpper = yaoToTrigram(changedYao.slice(3,6));
+    const changeKey = `${changedLower}${changedUpper}`;
+    const changeHex = HEXAGRAMS[changeKey] || { name:"未知", nature:"—", wuxing:"—", text:"" };
+    const huLower = yaoToTrigram([allYao[1], allYao[2], allYao[3]]);
+    const huUpper = yaoToTrigram([allYao[2], allYao[3], allYao[4]]);
+    const huKey = `${huLower}${huUpper}`;
+    const huHex = HEXAGRAMS[huKey] || { name:"未知", nature:"—", wuxing:"—", text:"" };
+    const huAllYao = [allYao[1], allYao[2], allYao[3], allYao[2], allYao[3], allYao[4]];
+    return { n1, n2, n3, r1, r2, r3, upperTrigram, lowerTrigram, hexKey, hexData, allYao, movingIdx, changedYao, changedUpper, changedLower, changeKey, changeHex, huLower, huUpper, huKey, huHex, huAllYao };
+}
+
+function yaoToTrigram(yao3) {
+    const map = { "111":1, "110":2, "101":3, "100":4, "011":5, "010":6, "001":7, "000":8 };
+    return map[yao3.join("")] || 8;
+}
+
+// =============================================
+//  绘制卦象（紧凑版）
+// =============================================
+
+function drawHexagramSVG(allYao, movingIdx, isChange, huColor) {
+    const yaoHeight = 10, yaoGap = 15, totalH = 6 * yaoGap + 16, w = 120;
+    let svgLines = '';
+    for (let i = 5; i >= 0; i--) {
+        const yaoIdx = i, drawRow = 5 - i, y = 12 + drawRow * yaoGap + yaoHeight / 2;
+        const isMoving = (yaoIdx === movingIdx) && !isChange;
+        const isYang = allYao[yaoIdx] === 1;
+        const color = isMoving ? '#C0392B' : (huColor ? '#8E44AD' : '#D4AF37');
+        const glow = isMoving ? `filter: drop-shadow(0 0 4px rgba(192,57,43,0.8));` : `filter: drop-shadow(0 0 3px rgba(${huColor ? '142,68,173' : '212,175,55'},0.4));`;
+        const anim = isMoving ? `<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite"/>` : '';
+        const yaoLabel = isMoving ? `<text x="110" y="${y+3}" font-size="8" fill="#C0392B" font-family="serif">动</text>` : '';
+        if (isYang) {
+            svgLines += `<g style="${glow}"><rect x="14" y="${y-yaoHeight/2}" width="88" height="${yaoHeight}" rx="3" fill="${color}">${anim}</rect>${yaoLabel}</g>`;
+        } else {
+            svgLines += `<g style="${glow}"><rect x="14" y="${y-yaoHeight/2}" width="38" height="${yaoHeight}" rx="3" fill="${color}">${anim}</rect><rect x="64" y="${y-yaoHeight/2}" width="38" height="${yaoHeight}" rx="3" fill="${color}">${anim}</rect>${yaoLabel}</g>`;
+        }
+        if (i === 2) {
+            const sepY = y + yaoGap * 0.5 + yaoHeight/2;
+            svgLines += `<line x1="14" y1="${sepY}" x2="102" y2="${sepY}" stroke="rgba(${huColor ? '142,68,173' : '212,175,55'},0.2)" stroke-width="1" stroke-dasharray="3,3"/>`;
+        }
+    }
+    return `<svg viewBox="0 0 ${w} ${totalH}" width="${w}" height="${totalH}" xmlns="http://www.w3.org/2000/svg">${svgLines}</svg>`;
+}
+
+// =============================================
+//  卦象 Tab 切换
+// =============================================
+
+function switchGuaTab(idx) {
+    document.querySelectorAll('.gua-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+    document.querySelectorAll('.gua-panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+}
+
+// =============================================
+//  说明区域折叠
+// =============================================
+
+function toggleInfoSection() {
+    const content = document.getElementById('infoSectionContent');
+    const btn = document.getElementById('toggleInfoBtn');
+    content.classList.toggle('open');
+    btn.innerHTML = content.classList.contains('open') ? '<i class="fa fa-chevron-up"></i>' : '<i class="fa fa-chevron-down"></i>';
+}
+
+// =============================================
+//  UI 操作
+// =============================================
+
+let currentResult = null;
+let isStreaming = false;
+let historyShown = false;
+
+window.addEventListener('load', () => {
+    const saved = localStorage.getItem('mhys_apikey');
+    const savedBase = localStorage.getItem('mhys_apibase');
+    if (saved) {
+        document.getElementById('apiKeyInput').value = saved;
+        document.getElementById('apiKeyArea').style.opacity = '0.6';
+    }
+    if (savedBase) document.getElementById('apiBaseInput').value = savedBase;
+
+    const nineEl = document.getElementById('numNine');
+    nineEl.addEventListener('input', () => {
+        nineEl.value = nineEl.value.replace(/\D/g, '').slice(0, 9);
+        updateSplitPreview();
+    });
+    nineEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('calcBtn').click();
+    });
+    document.getElementById('calcBtn').addEventListener('click', doCalculate);
+    renderHistory();
+});
+
+function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    const base = document.getElementById('apiBaseInput').value.trim();
+    if (key) {
+        localStorage.setItem('mhys_apikey', key);
+        if (base) localStorage.setItem('mhys_apibase', base);
+        document.getElementById('apiKeyArea').style.opacity = '0.6';
+        showToast('API Key 已保存', 'success');
+    } else {
+        showToast('请输入有效的 API Key', 'error');
+    }
+}
+
+function updateSplitPreview() {
+    const val = document.getElementById('numNine').value;
+    const preview = document.getElementById('splitPreview');
+    if (val.length > 0) {
+        preview.classList.remove('hidden');
+        document.getElementById('preview1').textContent = val.length >= 3 ? val.slice(0, 3) : val.padEnd(3, '_');
+        document.getElementById('preview2').textContent = val.length >= 6 ? val.slice(3, 6) : (val.length > 3 ? val.slice(3).padEnd(3, '_') : '___');
+        document.getElementById('preview3').textContent = val.length >= 9 ? val.slice(6, 9) : (val.length > 6 ? val.slice(6).padEnd(3, '_') : '___');
+    } else {
+        preview.classList.add('hidden');
+    }
+}
+
+function doCalculate() {
+    const question = document.getElementById('question').value.trim();
+    const nine = document.getElementById('numNine').value.trim();
+    if (!question) { showToast('请先填写所占之事', 'error'); return; }
+    if (nine.length !== 9 || !/^\d{9}$/.test(nine)) { showToast('请输入完整的九位数字', 'error'); return; }
+    const n1 = parseInt(nine.slice(0, 3)), n2 = parseInt(nine.slice(3, 6)), n3 = parseInt(nine.slice(6, 9));
+    if (n1 < 1 || n2 < 1 || n3 < 1) { showToast('三个三位数不能为零', 'error'); return; }
+    currentResult = calcHexagram(n1, n2, n3);
+    currentResult.question = question;
+    renderProcess(currentResult);
+    renderHexagram(currentResult);
+    document.getElementById('resultArea').classList.remove('hidden');
+    document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth' });
+    saveHistory(currentResult);
+    renderHistory();
+    setTimeout(() => callAI(currentResult), 600);
+}
+
+function renderProcess(r) {
+    const upperName = r.upperTrigram.name + r.upperTrigram.symbol;
+    const lowerName = r.lowerTrigram.name + r.lowerTrigram.symbol;
+    document.getElementById('processDisplay').innerHTML = `
+        <div>上数：<span class="text-primary">${r.n1}</span> ÷ 8 = ${Math.floor(r.n1/8)}…余<span class="text-primary font-bold">${r.r1}</span> → <span class="text-primary font-bold">${upperName}(${r.upperTrigram.nature},${r.upperTrigram.wuxing})</span></div>
+        <div>中数：<span class="text-primary">${r.n2}</span> ÷ 8 = ${Math.floor(r.n2/8)}…余<span class="text-primary font-bold">${r.r2}</span> → <span class="text-primary font-bold">${lowerName}(${r.lowerTrigram.nature},${r.lowerTrigram.wuxing})</span></div>
+        <div>下数：<span class="text-primary">${r.n3}</span> ÷ 6 = ${Math.floor(r.n3/6)}…余<span class="text-accent font-bold">${r.r3}</span> → <span class="text-accent font-bold">第${r.r3}爻动</span>(从下往上)</div>`;
+}
+
+function renderHexagram(r) {
+    document.getElementById('hexagramDraw').innerHTML = drawHexagramSVG(r.allYao, r.movingIdx, false, false);
+    document.getElementById('hexName').textContent = r.hexData.name;
+    document.getElementById('hexNature').textContent = r.hexData.nature;
+    document.getElementById('hexagramHuDraw').innerHTML = drawHexagramSVG(r.huAllYao, -1, true, true);
+    document.getElementById('hexHuName').textContent = r.huHex.name;
+    document.getElementById('hexHuNature').textContent = r.huHex.nature;
+    document.getElementById('hexagramChangeDraw').innerHTML = drawHexagramSVG(r.changedYao, r.movingIdx, true, false);
+    document.getElementById('hexChangeName').textContent = r.changeHex.name;
+    document.getElementById('hexChangeNature').textContent = r.changeHex.nature;
+    document.getElementById('infoUpper').textContent = `${r.upperTrigram.name}(${r.upperTrigram.nature})`;
+    document.getElementById('infoLower').textContent = `${r.lowerTrigram.name}(${r.lowerTrigram.nature})`;
+    document.getElementById('infoMoving').textContent = `第${r.r3}爻`;
+    document.getElementById('infoHu').textContent = r.huHex.name;
+    document.getElementById('infoChange').textContent = r.changeHex.name;
+    document.getElementById('hexText').textContent = `【卦辞】${r.hexData.judgment} 【象传】${r.hexData.image} ${r.hexData.text}`;
+    // 默认切回本卦 Tab
+    switchGuaTab(0);
+}
+
+// =============================================
+//  AI 调用
+// =============================================
+
+async function callAI(r) {
+    const apiKey = localStorage.getItem('mhys_apikey') || document.getElementById('apiKeyInput').value.trim();
+    if (!apiKey) {
+        document.getElementById('aiOutput').innerHTML = `<div class="text-gray-500 text-center py-6"><i class="fa fa-key text-xl mb-2 block opacity-40"></i>请先填写 API Key</div>`;
+        return;
+    }
+    const apiBase = localStorage.getItem('mhys_apibase') || document.getElementById('apiBaseInput').value.trim() || 'https://api.deepseek.com';
+    const apiUrl = apiBase.replace(/\/$/, '') + '/v1/chat/completions';
+    const prompt = buildPrompt(r);
+    document.getElementById('aiLoading').classList.remove('hidden');
+    document.getElementById('aiOutput').innerHTML = '';
+    document.getElementById('actionBtns').style.display = 'none';
+    isStreaming = true;
+    try {
+        const resp = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'user', content: prompt }], stream: true, temperature: 0.85, max_tokens: 2000 })
+        });
+        if (!resp.ok) { const err = await resp.text(); throw new Error(`API错误 ${resp.status}: ${err}`); }
+        document.getElementById('aiLoading').classList.add('hidden');
+        const outputEl = document.getElementById('aiOutput');
+        outputEl.innerHTML = '<span class="cursor"></span>';
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '', fullText = '';
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') continue;
+                try {
+                    const json = JSON.parse(data);
+                    const delta = json.choices?.[0]?.delta?.content || '';
+                    if (delta) {
+                        fullText += delta;
+                        outputEl.innerHTML = formatAIText(fullText) + '<span class="cursor"></span>';
+                    }
+                } catch(e) {}
+            }
+        }
+        outputEl.innerHTML = formatAIText(fullText);
+        document.getElementById('actionBtns').style.display = 'grid';
+        currentResult._aiText = fullText;
+    } catch (e) {
+        document.getElementById('aiLoading').classList.add('hidden');
+        document.getElementById('aiOutput').innerHTML = `<div class="text-red-400 text-xs p-3 rounded-lg" style="background:rgba(192,57,43,0.1); border:1px solid rgba(192,57,43,0.3)"><i class="fa fa-exclamation-triangle mr-1"></i>调用失败：${e.message}<div class="mt-1.5 text-gray-500">请检查 API Key 和网络。</div></div>`;
+        document.getElementById('actionBtns').style.display = 'grid';
+    }
+    isStreaming = false;
+}
+
+function formatAIText(text) {
+    return text
+        .replace(/^###\s(.+)$/gm, '<h3>$1</h3>')
+        .replace(/^##\s(.+)$/gm, '<h3>$1</h3>')
+        .replace(/^#\s(.+)$/gm, '<h3>$1</h3>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/【(.+?)】/g, '<em>【$1】</em>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+}
+
+function buildPrompt(r) {
+    const upperWx = r.upperTrigram.wuxing, lowerWx = r.lowerTrigram.wuxing;
+    const rel = WUXING_RELATIONS[`${upperWx}${lowerWx}`] || '—';
+    const yaoNames = ['初爻','二爻','三爻','四爻','五爻','上爻'];
+    const movingYaoName = yaoNames[r.movingIdx];
+    const movingYaoType = r.allYao[r.movingIdx] === 1 ? '阳爻' : '阴爻';
+    const changeTriUpper = TRIGRAMS[r.changedUpper], changeTriLower = TRIGRAMS[r.changedLower];
+    return `你是一位精通梅花易数的易学大师，有数十年研究《梅花易数》《周易》的深厚功底。请用梅花易数的正统方法，对以下卦象进行深度专业解读。
+
+【所占之事】
+${r.question}
+
+【起卦数字】
+上数：${r.n1}，÷8 余 ${r.r1} → 上卦
+中数：${r.n2}，÷8 余 ${r.r2} → 下卦  
+下数：${r.n3}，÷6 余 ${r.r3} → 动爻
+
+【本卦】
+卦名：${r.hexData.name}卦（${r.hexData.nature}）
+上卦：${r.upperTrigram.name}（${r.upperTrigram.nature}，${upperWx}）
+下卦：${r.lowerTrigram.name}（${r.lowerTrigram.nature}，${lowerWx}）
+上下卦五行关系：${rel}
+卦辞：${r.hexData.judgment}
+象传：${r.hexData.image}
+
+【动爻】
+${movingYaoName}（${movingYaoType}）动，从下往上第${r.r3}爻
+
+【变卦】
+卦名：${r.changeHex.name}卦（${r.changeHex.nature}）
+上卦：${changeTriUpper?.name}（${changeTriUpper?.nature}，${changeTriUpper?.wuxing}）
+下卦：${changeTriLower?.name}（${changeTriLower?.nature}，${changeTriLower?.wuxing}）
+
+【互卦】
+卦名：${r.huHex.name}卦（${r.huHex.nature}）
+上卦：${TRIGRAMS[r.huUpper]?.name}（${TRIGRAMS[r.huUpper]?.nature}，${TRIGRAMS[r.huUpper]?.wuxing}）
+下卦：${TRIGRAMS[r.huLower]?.name}（${TRIGRAMS[r.huLower]?.nature}，${TRIGRAMS[r.huLower]?.wuxing}）
+
+请按以下结构进行完整的梅花易数解读（请用中文，用###分隔章节）：
+
+### 一、卦象总论
+### 二、体用分析
+### 三、互卦分析
+### 四、动爻解析
+### 五、变卦指示
+### 六、综合断语
+
+请保持专业严谨，引用传统易学理论，给出实质性的解读。`;
+}
+
+function reinterpret() { if (currentResult) callAI(currentResult); }
+
+function clearAll() {
+    document.getElementById('question').value = '';
+    document.getElementById('numNine').value = '';
+    document.getElementById('splitPreview').classList.add('hidden');
+    document.getElementById('resultArea').classList.add('hidden');
+    document.getElementById('aiOutput').innerHTML = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// =============================================
+//  复制功能（Android 桥接 + Web API 回退）
+// =============================================
+
+function doCopyText(text, successMsg) {
+    successMsg = successMsg || '已复制到剪贴板';
+    if (window.Android && typeof window.Android.copyText === 'function') {
+        window.Android.copyText(text);
+        if (window.Android.getAndroidVersion && window.Android.getAndroidVersion() < 33) {}
+        clearInputOnly();
+        return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            clearInputOnly();
+            showToast(successMsg, 'success');
+        }).catch(() => fallbackCopy(text, successMsg));
+    } else {
+        fallbackCopy(text, successMsg);
+    }
+}
+
+function fallbackCopy(text, msg) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand('copy'); clearInputOnly(); showToast(msg || '已复制', 'success'); }
+    catch(e) { showToast('复制失败', 'error'); }
+    document.body.removeChild(ta);
+}
+
+function clearInputOnly() {
+    document.getElementById('question').value = '';
+    document.getElementById('numNine').value = '';
+    document.getElementById('splitPreview').classList.add('hidden');
+}
+
+const DEFAULT_TEMPLATE = '上卦{上卦}下卦{下卦}动爻{动爻}，{问题}。使用梅花易数，先展示本卦和变卦推演过程及符号和体用对应，然后按照先天卦和后天卦给结论再按照先天卦和后天卦分别讲一下，不要无端联想或过度推断，卦象有什么说什么。';
+
+function getCopyTemplate() { return localStorage.getItem('mhys_copy_tpl') || DEFAULT_TEMPLATE; }
+
+function copyAll() {
+    if (!currentResult) { showToast('尚无计算结果', 'error'); return; }
+    const tpl = getCopyTemplate();
+    const text = tpl.replace('{上卦}', currentResult.upperTrigram?.name || '').replace('{下卦}', currentResult.lowerTrigram?.name || '').replace('{动爻}', currentResult.r3 || '').replace('{问题}', currentResult.question || '');
+    doCopyText(text, '已复制提问语句');
+}
+
+function copyResult() {
+    if (!currentResult) { showToast('尚无计算结果', 'error'); return; }
+    const text = `本卦是${currentResult.hexData.name}（${currentResult.hexData.nature}），互卦是${currentResult.huHex.name}（${currentResult.huHex.nature}），变卦是${currentResult.changeHex.name}（${currentResult.changeHex.nature}）`;
+    doCopyText(text, '卦象结果已复制');
+}
+
+const DEFAULT_VERIFY_TEMPLATE = '你分析一下说的对吗？有没有出现过度解读的情况？如果错了先给出真实正确解读再分析，最后给我用白话讲一讲，没必要专挑好的讲，也没必要想的太坏，中肯一点，我没说你就不要联系上下文了';
+
+function getVerifyTemplate() { return localStorage.getItem('mhys_verify_tpl') || DEFAULT_VERIFY_TEMPLATE; }
+
+function copyVerify() {
+    if (!currentResult) { showToast('尚无计算结果', 'error'); return; }
+    doCopyText(getVerifyTemplate(), '验证文案已复制');
+}
+
+function openTemplateEditor() {
+    document.getElementById('tplEditorOverlay').classList.remove('hidden');
+    document.getElementById('tplTextarea').value = getCopyTemplate();
+}
+function closeTemplateEditor() { document.getElementById('tplEditorOverlay').classList.add('hidden'); }
+function saveTemplate() {
+    const val = document.getElementById('tplTextarea').value.trim();
+    if (!val) { showToast('模板不能为空', 'error'); return; }
+    localStorage.setItem('mhys_copy_tpl', val);
+    closeTemplateEditor(); showToast('模板已保存', 'success');
+}
+function resetTemplate() { document.getElementById('tplTextarea').value = DEFAULT_TEMPLATE; }
+
+function openVerifyEditor() {
+    document.getElementById('verifyEditorOverlay').classList.remove('hidden');
+    document.getElementById('verifyTextarea').value = getVerifyTemplate();
+}
+function closeVerifyEditor() { document.getElementById('verifyEditorOverlay').classList.add('hidden'); }
+function saveVerifyTemplate() {
+    const val = document.getElementById('verifyTextarea').value.trim();
+    if (!val) { showToast('模板不能为空', 'error'); return; }
+    localStorage.setItem('mhys_verify_tpl', val);
+    closeVerifyEditor(); showToast('验证模板已保存', 'success');
+}
+function resetVerifyTemplate() { document.getElementById('verifyTextarea').value = DEFAULT_VERIFY_TEMPLATE; }
+
+// 历史记录
+function saveHistory(r) {
+    let history = JSON.parse(localStorage.getItem('mhys_history') || '[]');
+    history.unshift({ question: r.question, n1: r.n1, n2: r.n2, n3: r.n3, hexName: r.hexData.name, hexNature: r.hexData.nature, huName: r.huHex.name, huNature: r.huHex.nature, changeName: r.changeHex.name, changeNature: r.changeHex.nature, moving: r.r3, upperName: r.upperTrigram?.name || '', lowerName: r.lowerTrigram?.name || '', time: new Date().toISOString() });
+    history = history.slice(0, 20);
+    localStorage.setItem('mhys_history', JSON.stringify(history));
+}
+
+function copyHistory(idx) {
+    const history = JSON.parse(localStorage.getItem('mhys_history') || '[]');
+    const h = history[idx];
+    if (!h) return;
+    const tpl = getCopyTemplate();
+    const text = tpl.replace('{上卦}', h.upperName || h.hexName).replace('{下卦}', h.lowerName || h.hexName).replace('{动爻}', h.moving).replace('{问题}', h.question);
+    doCopyText(text, '已复制提问语句');
+}
+
+function copyHistoryResult(idx) {
+    const history = JSON.parse(localStorage.getItem('mhys_history') || '[]');
+    const h = history[idx];
+    if (!h) return;
+    const text = `本卦是${h.hexName}（${h.hexNature || h.hexName}）${h.huName ? `，互卦是${h.huName}（${h.huNature || h.huName}）` : ''}，变卦是${h.changeName}（${h.changeNature || h.changeName}）`;
+    doCopyText(text, '卦象结果已复制');
+}
+
+function copyHistoryVerify() { doCopyText(getVerifyTemplate(), '验证文案已复制'); }
+
+function renderHistory() {
+    const history = JSON.parse(localStorage.getItem('mhys_history') || '[]');
+    const list = document.getElementById('historyList');
+    if (history.length === 0) { list.innerHTML = '<p class="text-gray-600 text-xs text-center py-3">暂无记录</p>'; return; }
+    list.innerHTML = history.map((h, idx) => {
+        const d = new Date(h.time);
+        const timeStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        return `<div class="history-item">
+            <div class="text-xs text-gray-300 font-serif truncate mb-1">${h.question}</div>
+            <div class="flex justify-between items-center gap-1.5">
+                <div class="text-xs text-gray-500 truncate">
+                    ${h.n1}/${h.n2}/${h.n3} · 本<span class="text-primary">${h.hexName}</span>→变<span class="text-primary">${h.changeName}</span> · 动${h.moving}爻
+                    <span class="ml-1">${timeStr}</span>
+                </div>
+                <div class="flex-shrink-0 flex gap-1">
+                    <button onclick="copyHistory(${idx})" class="px-1.5 py-0.5 rounded text-xs" style="background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.2); color:#D4AF37; font-size:10px;">提问</button>
+                    <button onclick="copyHistoryResult(${idx})" class="px-1.5 py-0.5 rounded text-xs" style="background:rgba(142,68,173,0.1); border:1px solid rgba(142,68,173,0.2); color:#8E44AD; font-size:10px;">卦象</button>
+                    <button onclick="copyHistoryVerify()" class="px-1.5 py-0.5 rounded text-xs" style="background:rgba(192,57,43,0.1); border:1px solid rgba(192,57,43,0.2); color:#E74C3C; font-size:10px;">验证</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function toggleHistory() {
+    historyShown = !historyShown;
+    const list = document.getElementById('historyList');
+    const btn = document.getElementById('toggleHistBtn');
+    list.classList.toggle('hidden', !historyShown);
+    btn.innerHTML = historyShown ? '<i class="fa fa-chevron-up"></i>' : '<i class="fa fa-chevron-down"></i>';
+}
+
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    const colors = { success: 'background:#2d5a27', error: 'background:#8b2020', info: 'background:#333' };
+    t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:8px;font-size:13px;color:#fff;z-index:50;white-space:nowrap;max-width:80vw;text-align:center;${colors[type]||colors.info};opacity:1;transition:opacity 0.3s;pointer-events:none;`;
+    t.textContent = msg;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2800);
+}
+</script>
+</body>
+</html>
