@@ -29,7 +29,14 @@
 ## 📱 截图预览
 
 > 应用界面简洁优雅，采用传统中国风设计
-> ![Screenshot_20260408_201257](https://github.com/user-attachments/assets/5b96db62-a0f2-4f88-9313-00fde713d429)
+> <p align="center">
+  <img src="https://github.com/user-attachments/assets/ef979602-e02e-432a-b687-4e1d0658b035" width="200" />
+  <img src="https://github.com/user-attachments/assets/8986f4b4-6efa-491d-914c-37b08dbb49be" width="200" />
+  <img src="https://github.com/user-attachments/assets/c78202a9-0a94-4d94-8359-3a8c30b60ee7" width="200" />
+  <img src="https://github.com/user-attachments/assets/d8ce74b2-c3ed-4313-b8a7-74c6d2e94842" width="200" />
+</p>
+
+
 
 
 ## 🚀 快速开始
