@@ -29,6 +29,8 @@
 ## 📱 截图预览
 
 > 应用界面简洁优雅，采用传统中国风设计
+> ![Screenshot_20260408_201257](https://github.com/user-attachments/assets/5b96db62-a0f2-4f88-9313-00fde713d429)
+
 
 ## 🚀 快速开始
 
